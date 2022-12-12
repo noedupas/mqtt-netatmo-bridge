@@ -23,7 +23,7 @@ const retainValues = process.env.RETAIN_VALUES || true
 // Setup MQTT
 const client = mqtt_helpers.setupClient(null, null)
 
-const isInterestingDataPoint = function(inName) {
+const isInterestingDataPoint = function (inName) {
     const dataPointName = inName.toLowerCase()
     if (dataPointName === 'rain') {
         return dataPointName
@@ -77,28 +77,28 @@ var auth = {
 
 var api = null
 
-const reconnect = function() {
+const reconnect = function () {
     logging.info('connecting')
     api = new netatmo(auth)
 }
 
 reconnect()
 
-api.on('error', function(error) {
+api.on('error', function (error) {
     // When the "error" event is emitted, this is called
     logging.error('Netatmo threw an error: ' + error)
     health.unhealthyEvent()
     reconnect()
 })
 
-api.on('warning', function(error) {
+api.on('warning', function (error) {
     // When the "warning" event is emitted, this is called
     logging.log('Netatmo threw a warning: ' + error)
     health.unhealthyEvent()
     reconnect()
 })
 
-var getStationsData = function(err, devices) {
+var getStationsData = function (err, devices) {
     if (_.isNil(err)) {
         health.healthyEvent()
         logging.info('loaded station data')
@@ -114,7 +114,7 @@ var getStationsData = function(err, devices) {
     devices.forEach(processStation)
 }
 
-var processStation = function(station) {
+var processStation = function (station) {
     logging.info(`Processing station ${station.station_name}`)
 
     // when enabled, published HomeAssistant MQTT Discovery configs
@@ -128,33 +128,33 @@ var processStation = function(station) {
         return
     }
 
-    foundModules.forEach(function(module) {
+    foundModules.forEach(function (module) {
         processModule(station, module)
     }, this)
 }
 
-var getMeasure = function(err, measure) {
+var getMeasure = function (err, measure) {
     console.log(measure.length)
     console.log(measure[0])
 }
 
-var getThermostatsData = function(err, devices) {
+var getThermostatsData = function (err, devices) {
     console.log(devices)
 }
 
-var setSyncSchedule = function(err, status) {
+var setSyncSchedule = function (err, status) {
     console.log(status)
 }
 
-var setThermpoint = function(err, status) {
+var setThermpoint = function (err, status) {
     console.log(status)
 }
 
-var getHomeData = function(err, data) {
+var getHomeData = function (err, data) {
     console.log(data)
 }
 
-var handleEvents = function(err, data) {
+var handleEvents = function (err, data) {
     console.log(data.events_list)
 }
 
@@ -211,15 +211,19 @@ api.on('get-lasteventof', handleEvents)
 api.on('get-eventsuntil', handleEvents)
 
 
-const processModule = function(station, module) {
+const processModule = function (station, module) {
     const name = module.module_name
     const data = {
         ...module.dashboard_data,
         ...(module.battery_percent && { battery: module.battery_percent }),
-        ...(module.rf_status && { rf_status: module.rf_status  }),
+        ...(module.rf_status && { rf_status: module.rf_status }),
         ...(module.wifi_status && { wifi_status: module.wifi_status })
     }
-    //logging.info(`Looking at module: ${station.station_name}.${name}`)
+
+    if (name !== undefined) {
+        logging.info(`Looking at module: ${station.station_name}.${name}`)
+    }
+
     logging.info('   data: ' + JSON.stringify(data))
     logging.debug('module:')
     logging.debug(module)
@@ -227,29 +231,29 @@ const processModule = function(station, module) {
 
     logging.info('starting smart publish')
 
-    // Publish station data and modules data
-    if(name === undefined){
+    // Publish station data or modules data
+    if (name === undefined) {
         // Station data
         client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name)), data, [], { retain: retainValues })
-    }else{
+    } else {
         // Module data
-        client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name), name), data, [], { retain: retainValues })
+        client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name), normalize(name)), data, [], { retain: retainValues })
     }
-    
+
     logging.info('done')
 }
 
-const pollData = function() {
+const pollData = function () {
     logging.info('Polling for new info')
 
     api.getStationsData(getStationsData)
 }
 
-const startMonitoring = function() {
+const startMonitoring = function () {
     logging.info('Starting netatmo <-> MQTT')
 
     pollData()
-    interval(async() => {
+    interval(async () => {
         // no need to refresh the token, since it's done by Netatmo lib
         pollData()
     }, pollIntervalSeconds * 1000)
