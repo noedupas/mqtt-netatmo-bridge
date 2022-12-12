@@ -219,14 +219,23 @@ const processModule = function(station, module) {
         ...(module.rf_status && { rf_status: module.rf_status  }),
         ...(module.wifi_status && { wifi_status: module.wifi_status })
     }
-    logging.info(`Looking at module: ${station.station_name}.${name}`)
+    //logging.info(`Looking at module: ${station.station_name}.${name}`)
     logging.info('   data: ' + JSON.stringify(data))
     logging.debug('module:')
     logging.debug(module)
     health.healthyEvent()
 
     logging.info('starting smart publish')
-    client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name), name), data, [], { retain: retainValues })
+
+    // Publish station data and modules data
+    if(name === undefined){
+        // Station data
+        client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name)), data, [], { retain: retainValues })
+    }else{
+        // Module data
+        client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name), name), data, [], { retain: retainValues })
+    }
+    
     logging.info('done')
 }
 
