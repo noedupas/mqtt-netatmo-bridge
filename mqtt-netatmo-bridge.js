@@ -237,7 +237,7 @@ const processModule = function (station, module) {
         client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name)), data, [], { retain: retainValues })
     } else {
         // Module data
-        client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name), normalize(name)), data, [], { retain: retainValues })
+        client.smartPublishCollection(mqtt_helpers.generateTopic(topicPrefix, normalize(station.station_name), name), data, [], { retain: retainValues })
     }
 
     logging.info('done')
